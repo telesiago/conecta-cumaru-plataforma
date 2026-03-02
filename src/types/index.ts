@@ -1,7 +1,7 @@
 export interface Turma {
   id: string;
   name: string;
-  order?: number; // <-- Nova propriedade para guardar a posição
+  order?: number;
 }
 
 export interface Aluno {
@@ -32,6 +32,13 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
+// NOVO: Estrutura para guardar as respostas erradas
+export interface WrongAnswer {
+  question: string;
+  studentAnswer: string;
+  correctAnswer: string;
+}
+
 export interface Report {
   id: string;
   studentId: string;
@@ -42,4 +49,5 @@ export interface Report {
   score: number;
   total: number;
   date: number;
+  wrongAnswers?: WrongAnswer[]; // NOVO: Campo opcional para os erros
 }

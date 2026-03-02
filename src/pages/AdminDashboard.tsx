@@ -25,6 +25,7 @@ import {
   Filter,
   CheckCircle,
   XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { db, appId } from "../firebase";
 import type { Turma, Aluno, Quiz, Report, QuizQuestion } from "../types";
@@ -332,7 +333,6 @@ function AdminAlunos({
   const [password, setPassword] = useState("");
   const [classId, setClassId] = useState("");
 
-  // Novos estados para a Busca e Filtro
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClassId, setFilterClassId] = useState("");
 
@@ -340,7 +340,6 @@ function AdminAlunos({
     (a, b) => (a.order || 0) - (b.order || 0),
   );
 
-  // Lógica de filtragem inteligente (Nome + Turma) e ORDENAÇÃO ALFABÉTICA
   const filteredStudents = students
     .filter((s) => {
       const matchesSearch = s.name
@@ -356,7 +355,6 @@ function AdminAlunos({
     if (!name.trim() || !password.trim() || !classId) return;
 
     if (editingId) {
-      // Modo Edição
       await updateDoc(
         doc(db, "artifacts", appId, "public", "data", "students", editingId),
         {
@@ -367,7 +365,6 @@ function AdminAlunos({
       );
       alert("Dados do aluno atualizados com sucesso!");
     } else {
-      // Modo Adição
       await addDoc(
         collection(db, "artifacts", appId, "public", "data", "students"),
         {
@@ -421,7 +418,7 @@ function AdminAlunos({
         </p>
       </div>
 
-      {/* FORMULÁRIO (Adição / Edição) */}
+      {/* FORMULÁRIO */}
       <form
         onSubmit={handleSave}
         className={`p-5 md:p-6 rounded-2xl shadow-sm border mb-8 transition-colors duration-300 ${editingId ? "bg-orange-50 border-orange-300" : "bg-white border-slate-200"}`}
@@ -504,7 +501,7 @@ function AdminAlunos({
         </div>
       </form>
 
-      {/* BARRA DE PESQUISA E FILTRO */}
+      {/* BARRA DE PESQUISA */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-2">
         <div className="flex-1 relative">
           <Search
@@ -1042,6 +1039,7 @@ function AdminQuizzes({ quizzes }: { quizzes: Quiz[] }) {
   );
 }
 
+// RELATÓRIOS COM MODAL DE ERROS
 function AdminReports({
   reports,
   students,
@@ -1051,6 +1049,8 @@ function AdminReports({
   students: Aluno[];
   classes: Turma[];
 }) {
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
@@ -1058,20 +1058,22 @@ function AdminReports({
           Relatórios Recentes
         </h3>
         <p className="text-slate-500 mt-1">
-          Acompanhe as avaliações e as notas dos alunos em tempo real.
+          Acompanhe as avaliações e clique em "Ver Erros" para analisar o
+          desempenho.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[700px]">
+          <table className="w-full text-left text-sm min-w-[800px]">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs">
               <tr>
                 <th className="p-4 font-bold">Data & Hora</th>
                 <th className="p-4 font-bold">Aluno</th>
                 <th className="p-4 font-bold">Turma</th>
                 <th className="p-4 font-bold">Quiz Respondido</th>
-                <th className="p-4 font-bold text-right">Nota Final</th>
+                <th className="p-4 font-bold text-center">Nota Final</th>
+                <th className="p-4 font-bold text-right">Detalhes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1115,7 +1117,7 @@ function AdminReports({
                           {r.quizTitle}
                         </div>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-center">
                         <div
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${
                             percentage >= 70
@@ -1135,12 +1137,20 @@ function AdminReports({
                           {r.score} / {r.total}
                         </div>
                       </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => setSelectedReport(r)}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                        >
+                          Ver Erros
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
               {reports.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-slate-500">
+                  <td colSpan={6} className="p-12 text-center text-slate-500">
                     <BarChart3 className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                     <p className="font-medium">Nenhum quiz respondido ainda.</p>
                   </td>
@@ -1150,6 +1160,124 @@ function AdminReports({
           </table>
         </div>
       </div>
+
+      {/* MODAL DE DETALHES DO RELATÓRIO */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="font-black text-xl text-slate-800">
+                  Detalhes do Desempenho
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {selectedReport.quizTitle} •{" "}
+                  {new Date(selectedReport.date).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {/* Resumo */}
+              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">
+                    {students.find((s) => s.id === selectedReport.studentId)
+                      ?.avatar || "👤"}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800">
+                      {students.find((s) => s.id === selectedReport.studentId)
+                        ?.name || "Aluno"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {
+                        classes.find((c) => c.id === selectedReport.classId)
+                          ?.name
+                      }
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-wide font-bold text-slate-400 mb-1">
+                    Nota
+                  </p>
+                  <p className="text-2xl font-black text-blue-900 leading-none">
+                    {selectedReport.score}/{selectedReport.total}
+                  </p>
+                </div>
+              </div>
+
+              {/* Lista de Erros (Verificação de Segurança para Relatórios Antigos) */}
+              {selectedReport.wrongAnswers ? (
+                selectedReport.wrongAnswers.length > 0 ? (
+                  <div>
+                    <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                      <AlertCircle size={18} className="text-red-500" />
+                      Questões Erradas ({selectedReport.wrongAnswers.length})
+                    </h4>
+                    <div className="space-y-4">
+                      {selectedReport.wrongAnswers.map((wa, i) => (
+                        <div
+                          key={i}
+                          className="bg-red-50/50 border border-red-100 p-4 rounded-xl"
+                        >
+                          <p className="font-bold text-slate-800 text-sm mb-3 leading-relaxed">
+                            {i + 1}. {wa.question}
+                          </p>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div className="bg-white p-3 rounded-lg border border-red-200 shadow-sm">
+                              <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                <XCircle size={12} /> Resposta do Aluno
+                              </p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {wa.studentAnswer}
+                              </p>
+                            </div>
+                            <div className="bg-white p-3 rounded-lg border border-green-200 shadow-sm">
+                              <p className="text-xs font-bold text-green-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                <CheckCircle size={12} /> Resposta Correta
+                              </p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {wa.correctAnswer}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-green-50 rounded-xl border border-green-100">
+                    <Trophy className="mx-auto h-12 w-12 text-green-500 mb-3" />
+                    <p className="text-green-800 font-bold">
+                      Incrível! O aluno acertou tudo.
+                    </p>
+                    <p className="text-sm text-green-600">
+                      Não há erros para exibir neste relatório.
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="text-slate-500 font-medium">
+                    Este é um relatório antigo.
+                  </p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Os detalhes das respostas não foram guardados.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
