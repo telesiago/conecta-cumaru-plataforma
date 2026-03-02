@@ -23,10 +23,10 @@ export default function Login({ setView, setCurrentStudent, classes, students }:
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPass === 'admin123') { // Senha fixa do administrador
+    if (adminPass === '4dmin$') { // Senha fixa do administrador
       setView('admin');
     } else {
-      setError('Senha de administrador incorreta (Dica: admin123)');
+      setError('Senha de administrador incorreta');
     }
   };
 
